@@ -13,10 +13,6 @@ public interface IExampleStatemachine extends ITimerCallback,IStatemachine {
 		
 		public void raiseBlack();
 		
-		public void raiseGrey();
-		
-		public void raiseConcede();
-		
 		public long getWhiteTime();
 		
 		public void setWhiteTime(long value);

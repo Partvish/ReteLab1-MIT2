@@ -46,7 +46,7 @@ public class RunStatechart {
 			}
 			print(s);
 		}
-		System.out.println("System terminated.");
+		
 		System.exit(0);
 	}
 
