@@ -5,11 +5,16 @@ import java.util.Arrays;
 
 import org.eclipse.emf.common.util.EList;
 import org.eclipse.emf.common.util.TreeIterator;
+import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EObject;
 import org.junit.Test;
+import org.yakindu.base.expressions.expressions.IntLiteral;
+import org.yakindu.base.expressions.expressions.PrimitiveValueExpression;
 import org.yakindu.sct.model.sgraph.State;
 import org.yakindu.sct.model.sgraph.Statechart;
 import org.yakindu.sct.model.sgraph.Transition;
+import org.yakindu.sct.model.stext.stext.EventDefinition;
+import org.yakindu.sct.model.stext.stext.VariableDefinition;
 
 import hu.bme.mit.model2gml.Model2GML;
 import hu.bme.mit.yakindu.analysis.modelmanager.ModelManager;
@@ -27,75 +32,86 @@ public class Main {
 		// Loading model
 		EObject root = manager.loadModel("model_input/example.sct");
 		
+		ArrayList<String> variables = new ArrayList<String>();
+		ArrayList<String> events = new ArrayList<String>();
+		String tempString;
 		// Reading model
 		Statechart s = (Statechart) root;
 		TreeIterator<EObject> iterator = s.eAllContents();
-		
-		ArrayList<String> trapStates = new ArrayList<String>();
-		ArrayList<String> endTransitions = new ArrayList<String>();
-		ArrayList <String> noNameStates = new ArrayList<String>();
-		String startName ="";
-		String endName;
-		EList<Transition> transitions;
-		
-		boolean isTrap = false;
 		while (iterator.hasNext()) {
 			EObject content = iterator.next();
-			if(content instanceof State) {
-				State state = (State) content;
-				startName = state.getName();
-				if(startName == null || startName =="") {
-					startName = "NoName" + noNameStates.size();
-					noNameStates.add(startName);
-					System.out.println("State without name, recommending name: " + startName);
-				}
-				else
-					System.out.println(startName);
-	
-				transitions= state.getOutgoingTransitions();
-				isTrap=true;
-				for (Transition e : transitions) {
-					if(!e.getTarget().getName().equals(state.getName())) {
-						isTrap=false;
-						break;
-					}
-				}
-				
-				if(transitions.isEmpty() || isTrap== true) 
-					trapStates.add(startName);					 
+			if(content instanceof EventDefinition) {
+				EventDefinition event = (EventDefinition) content;
+				events.add(event.getName());
 			}
-			if(content instanceof Transition) {
-				Transition transition = (Transition) content;
-				
-				endName = transition.getTarget().getName();
-				//start node
-				if(startName == "") {
-					System.out.println("State without name, Recommending name: Start");
-					startName = "Start";
-				}
-				//end node
-				if(endName == null) {
-					endName= "End";
-					endTransitions.add("  "+ startName + " -> "+ endName);
-				}
-				if(endName=="") {
-					endName = "NoName";
-				}
-					System.out.println("  "+ startName + " -> " + endName);
+			if (content instanceof VariableDefinition) {
+				VariableDefinition var = (VariableDefinition) content;
+				tempString=var.getName();
+				variables.add(tempString.substring(0,1).toUpperCase()+tempString.substring(1));
 			}
+		}
 		
+		
+		tempString = getTop() + "\n";
+		for(String event: events) {
+			tempString += "				case \""+event+"\":\r\n" + 
+					"					s.raise"+event.substring(0,1).toUpperCase()+event.substring(1)+"();\r\n" + 
+					"					s.runCycle();\r\n" + 
+					"					break;\n";
 		}
-		if(!endTransitions.isEmpty()) {
-			System.out.println("State without name, recommending name: End");
-			endTransitions.forEach(e->{System.out.println(e);});
-		}
-		System.out.println("\nTrap States: ");
-		trapStates.forEach(e->{ System.out.println("  "+e); });
-		System.out.println("No name states:");
-		noNameStates.forEach(e->{System.out.println("  " +e);});
+		tempString += getBottom(variables);
+		System.out.println(tempString);
 		// Transforming the model into a graph representation
 		String content = model2gml.transform(root);
 		// and saving it
 		manager.saveFile("model_output/graph.gml", content);
 	}
+	
+	private static String getBottom(ArrayList<String> variables) {
+		String out= "				default: break;\r\n"+
+				"			}\r\n" + 
+				"			print(s);\r\n" + 
+				"		}\r\n" + 
+				"		System.out.println(\"System terminated.\");\r\n" + 
+				"		System.exit(0);\r\n" + 
+				"	}\n"+
+				"	public static void print(IExampleStatemachines) {\n";
+		for(String e: variables){
+			out+=(" 	System.out.println(\""+ e.charAt(0) + "\" = + s.getSCInterface().get" + e+ "());\n");
+		};
+		out+= "	}\n}";
+		return out;
+	}
+	
+	private static String getTop() {
+		return "import java.io.BufferedReader;\n" + 
+				"import java.io.IOException;\r\n" + 
+				"import java.io.InputStreamReader;\r\n" + 
+				"\r\n" + 
+				"import hu.bme.mit.yakindu.analysis.RuntimeService;\r\n" + 
+				"import hu.bme.mit.yakindu.analysis.TimerService;\r\n" + 
+				"import hu.bme.mit.yakindu.analysis.example.ExampleStatemachine;\r\n" + 
+				"import hu.bme.mit.yakindu.analysis.example.IExampleStatemachine;\r\n" + 
+				"\r\n" + 
+				"\r\n" + 
+				"\r\n" + 
+				"public class RunStatechart {\r\n" + 
+				"	\r\n" + 
+				"	public static void main(String[] args) throws IOException {\r\n" + 
+				"		ExampleStatemachine s = new ExampleStatemachine();\r\n" + 
+				"		s.setTimer(new TimerService());\r\n" + 
+				"		RuntimeService.getInstance().registerStatemachine(s, 200);\r\n" + 
+				"		s.init();\r\n" + 
+				"		s.enter();\r\n" + 
+				"		s.runCycle();\r\n" + 
+				"		print(s);\r\n" + 
+				"		boolean running = true;\r\n" + 
+				"		String command=\"\";\r\n" + 
+				"		BufferedReader reader = new BufferedReader( new InputStreamReader(System.in));\r\n" + 
+				"		while(running) {\r\n" + 
+				"			command =  reader.readLine();\r\n" + 
+				"			switch(command) {";
+	}
+	
+	
 }

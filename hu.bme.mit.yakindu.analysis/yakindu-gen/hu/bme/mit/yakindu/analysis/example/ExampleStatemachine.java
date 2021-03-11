@@ -24,6 +24,12 @@ public class ExampleStatemachine implements IExampleStatemachine {
 			black = true;
 		}
 		
+		private boolean grey;
+		
+		public void raiseGrey() {
+			grey = true;
+		}
+		
 		private long whiteTime;
 		
 		public long getWhiteTime() {
@@ -44,10 +50,21 @@ public class ExampleStatemachine implements IExampleStatemachine {
 			this.blackTime = value;
 		}
 		
+		private long greyTime;
+		
+		public long getGreyTime() {
+			return greyTime;
+		}
+		
+		public void setGreyTime(long value) {
+			this.greyTime = value;
+		}
+		
 		protected void clearEvents() {
 			start = false;
 			white = false;
 			black = false;
+			grey = false;
 		}
 	}
 	
@@ -59,6 +76,7 @@ public class ExampleStatemachine implements IExampleStatemachine {
 		main_region_Init,
 		main_region_Black,
 		main_region_White,
+		main_region_Grey,
 		$NullState$
 	};
 	
@@ -69,7 +87,7 @@ public class ExampleStatemachine implements IExampleStatemachine {
 	
 	private ITimer timer;
 	
-	private final boolean[] timeEvents = new boolean[2];
+	private final boolean[] timeEvents = new boolean[3];
 	public ExampleStatemachine() {
 		sCInterface = new SCInterfaceImpl();
 	}
@@ -87,6 +105,8 @@ public class ExampleStatemachine implements IExampleStatemachine {
 		sCInterface.setWhiteTime(60);
 		
 		sCInterface.setBlackTime(60);
+		
+		sCInterface.setGreyTime(20);
 	}
 	
 	public void enter() {
@@ -116,6 +136,9 @@ public class ExampleStatemachine implements IExampleStatemachine {
 				break;
 			case main_region_White:
 				main_region_White_react(true);
+				break;
+			case main_region_Grey:
+				main_region_Grey_react(true);
 				break;
 			default:
 				// $NullState$
@@ -170,6 +193,8 @@ public class ExampleStatemachine implements IExampleStatemachine {
 			return stateVector[0] == State.main_region_Black;
 		case main_region_White:
 			return stateVector[0] == State.main_region_White;
+		case main_region_Grey:
+			return stateVector[0] == State.main_region_Grey;
 		default:
 			return false;
 		}
@@ -215,6 +240,10 @@ public class ExampleStatemachine implements IExampleStatemachine {
 		sCInterface.raiseBlack();
 	}
 	
+	public void raiseGrey() {
+		sCInterface.raiseGrey();
+	}
+	
 	public long getWhiteTime() {
 		return sCInterface.getWhiteTime();
 	}
@@ -231,6 +260,14 @@ public class ExampleStatemachine implements IExampleStatemachine {
 		sCInterface.setBlackTime(value);
 	}
 	
+	public long getGreyTime() {
+		return sCInterface.getGreyTime();
+	}
+	
+	public void setGreyTime(long value) {
+		sCInterface.setGreyTime(value);
+	}
+	
 	/* Entry action for state 'Black'. */
 	private void entryAction_main_region_Black() {
 		timer.setTimer(this, 0, (1 * 1000), false);
@@ -241,6 +278,11 @@ public class ExampleStatemachine implements IExampleStatemachine {
 		timer.setTimer(this, 1, (1 * 1000), false);
 	}
 	
+	/* Entry action for state 'Grey'. */
+	private void entryAction_main_region_Grey() {
+		timer.setTimer(this, 2, (1 * 1000), false);
+	}
+	
 	/* Exit action for state 'Black'. */
 	private void exitAction_main_region_Black() {
 		timer.unsetTimer(this, 0);
@@ -249,6 +291,11 @@ public class ExampleStatemachine implements IExampleStatemachine {
 	/* Exit action for state 'White'. */
 	private void exitAction_main_region_White() {
 		timer.unsetTimer(this, 1);
+	}
+	
+	/* Exit action for state 'Grey'. */
+	private void exitAction_main_region_Grey() {
+		timer.unsetTimer(this, 2);
 	}
 	
 	/* 'default' enter sequence for state Init */
@@ -269,6 +316,13 @@ public class ExampleStatemachine implements IExampleStatemachine {
 		entryAction_main_region_White();
 		nextStateIndex = 0;
 		stateVector[0] = State.main_region_White;
+	}
+	
+	/* 'default' enter sequence for state Grey */
+	private void enterSequence_main_region_Grey_default() {
+		entryAction_main_region_Grey();
+		nextStateIndex = 0;
+		stateVector[0] = State.main_region_Grey;
 	}
 	
 	/* 'default' enter sequence for region main region */
@@ -298,6 +352,14 @@ public class ExampleStatemachine implements IExampleStatemachine {
 		exitAction_main_region_White();
 	}
 	
+	/* Default exit sequence for state Grey */
+	private void exitSequence_main_region_Grey() {
+		nextStateIndex = 0;
+		stateVector[0] = State.$NullState$;
+		
+		exitAction_main_region_Grey();
+	}
+	
 	/* Default exit sequence for region main region */
 	private void exitSequence_main_region() {
 		switch (stateVector[0]) {
@@ -309,6 +371,9 @@ public class ExampleStatemachine implements IExampleStatemachine {
 			break;
 		case main_region_White:
 			exitSequence_main_region_White();
+			break;
+		case main_region_Grey:
+			exitSequence_main_region_Grey();
 			break;
 		default:
 			break;
@@ -333,7 +398,12 @@ public class ExampleStatemachine implements IExampleStatemachine {
 					exitSequence_main_region_Init();
 					enterSequence_main_region_White_default();
 				} else {
-					did_transition = false;
+					if (sCInterface.grey) {
+						exitSequence_main_region_Init();
+						enterSequence_main_region_Grey_default();
+					} else {
+						did_transition = false;
+					}
 				}
 			}
 		}
@@ -379,6 +449,34 @@ public class ExampleStatemachine implements IExampleStatemachine {
 						enterSequence_main_region_White_default();
 					} else {
 						did_transition = false;
+					}
+				}
+			}
+		}
+		return did_transition;
+	}
+	
+	private boolean main_region_Grey_react(boolean try_transition) {
+		boolean did_transition = try_transition;
+		
+		if (try_transition) {
+			if (react()==false) {
+				if (sCInterface.black) {
+					exitSequence_main_region_Grey();
+					enterSequence_main_region_Black_default();
+				} else {
+					if (sCInterface.grey) {
+						exitSequence_main_region_Grey();
+						enterSequence_main_region_Init_default();
+					} else {
+						if (timeEvents[2]) {
+							exitSequence_main_region_Grey();
+							sCInterface.setGreyTime(sCInterface.getGreyTime() - 1);
+							
+							enterSequence_main_region_Grey_default();
+						} else {
+							did_transition = false;
+						}
 					}
 				}
 			}
