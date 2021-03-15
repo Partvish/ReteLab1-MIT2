@@ -27,9 +27,6 @@ public class RunStatechart {
 		while(running) {
 			command =  reader.readLine();
 			switch(command) {
-				case "exit":
-					running = false;
-					break;
 				case "start":
 					s.raiseStart();
 					s.runCycle();

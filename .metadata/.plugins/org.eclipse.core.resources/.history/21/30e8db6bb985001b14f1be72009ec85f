@@ -110,10 +110,7 @@ public class Main {
 				"		BufferedReader reader = new BufferedReader( new InputStreamReader(System.in));\r\n" + 
 				"		while(running) {\r\n" + 
 				"			command =  reader.readLine();\r\n" + 
-				"			switch(command) {\n" +
-				"				case \"exit\":\r\n" + 
-				"					running = false;\r\n" + 
-				"					break;";
+				"			switch(command) {";
 	}
 	
 	

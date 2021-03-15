@@ -75,9 +75,9 @@ public class Main {
 				"		System.out.println(\"System terminated.\");\r\n" + 
 				"		System.exit(0);\r\n" + 
 				"	}\n"+
-				"	public static void print( IExampleStatemachine s ) {\n";
+				"	public static void print(IExampleStatemachines) {\n";
 		for(String e: variables){
-			out+=(" 	System.out.println(\""+ e.charAt(0) + " = \" + s.getSCInterface().get" + e+ "());\n");
+			out+=(" 	System.out.println(\""+ e.charAt(0) + "\" = + s.getSCInterface().get" + e+ "());\n");
 		};
 		out+= "	}\n}";
 		return out;
@@ -110,10 +110,7 @@ public class Main {
 				"		BufferedReader reader = new BufferedReader( new InputStreamReader(System.in));\r\n" + 
 				"		while(running) {\r\n" + 
 				"			command =  reader.readLine();\r\n" + 
-				"			switch(command) {\n" +
-				"				case \"exit\":\r\n" + 
-				"					running = false;\r\n" + 
-				"					break;";
+				"			switch(command) {";
 	}
 	
 	
